@@ -1,0 +1,225 @@
+import React, { useEffect, useState } from "react";
+import { verifyAuthentication } from "../utils/verifyAuth";
+import Image from "next/dist/client/image";
+import { FcUnlock } from "react-icons/fc";
+import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/router";
+
+import InputField from "../components/InputField";
+import { loginUser, registerUser, updateUser } from "../redux/actions/user";
+const initalStateForm = {
+  password: "",
+  fullName: "",
+  confirmPassword: "",
+  email: "",
+  contact: "",
+  role : "doctor",
+}
+
+export const getServerSideProps = (ctx) => {
+  const auth = verifyAuthentication(ctx.req);
+  if (auth.state) {
+    return {
+      redirect : {
+        destination : '/dashboard'
+      }
+    }
+  }
+  return {
+    props: {},
+  };
+};
+
+
+const Home = ({user, darkMode, setDarkMode}) => {
+
+  const router = useRouter();
+  const [isLogin, setIsLogin] = useState(true);
+  const dispatch = useDispatch();
+  useEffect(()=>{
+    dispatch(updateUser(user));
+  }, [])
+
+  const [form, setForm] = useState(initalStateForm);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+    setError("");
+  };
+
+  const LoginSubmit = () => {
+    const {email,password} = form;
+    if (!email) {
+      setError('Enter a valid username');
+      return;
+    }
+    if (!password ) {
+      setError('Enter a valid password');
+      return;
+    }
+    console.log(email,password);
+    dispatch(loginUser({email,password}, setLoading, setError, router));
+    
+
+  };
+  const RegisterSubmit = ()=>{
+    const {email,password,confirmPassword, role, fullName, contact} = form;
+    if (!email || !password || !confirmPassword || !role || !fullName || !contact) {
+      return setError('Some Fields are invalid');
+    }
+    if (password!==confirmPassword) return setError('Password and confirm Password should match');
+    console.log(form)
+    dispatch(registerUser(form,setLoading, setError, router));
+  };
+
+  useEffect(()=>{
+    setError('');
+  }, [isLogin])
+
+  return (
+    <div className="flex justify-between">
+      <div className="p-16">
+        <div onClick={()=>setDarkMode(prev=>!prev)} className="cursor-pointer">
+          <Image src={!darkMode?"/logo.svg":"/darkLogo.svg"} height="40px" width="250px" />
+        </div>
+        <div className={`${isLogin?'mt-28':'mt-16'}`}>
+          <div className="flex space-x-2 items-center">
+            <FcUnlock size={36} />
+            <div
+              className={` ${
+                error ? "text-red-600 dark:text-darkError" : "text-black dark:text-white"
+              } text-2xl font-semibold`}
+            >
+              {error
+                ? `Error ${isLogin ? "Logging" : "Signing"} In`
+                : `${isLogin ? "Login" : "SignUp"}`}
+            </div>
+          </div>
+          <div
+            className={`${
+              error ? "text-red-600 dark:text-darkError" : "text-black dark:text-gray-400"
+            } text-sm mt-3 pl-1`}
+          >
+            {error
+              ? error
+              : "Login to find best doctors according to your requirement"}
+          </div>
+
+          <div className="mt-10 space-y-5">
+            <div className="flex space-x-3">
+              {!isLogin && (
+                <InputField
+                  label="Full Name"
+                  type="text"
+                  width={510}
+                  placeholder="Enter your Full Name"
+                  name="fullName"
+                  onChange={handleChange}
+                  value={form.fullName}
+                />
+              )}
+            </div>
+
+            <div className="flex space-x-3">
+              
+                <InputField
+                  label="Email"
+                  type="email"
+                  placeholder="Enter your Email"
+                  name="email"
+                  width={isLogin?370:250}
+                  onChange={handleChange}
+                  value={form.email}
+                />
+              
+              {!isLogin && (
+                <InputField
+                  label="Contact"
+                  type="text"
+                  placeholder="Enter your Phone Number"
+                  name="contact"
+                  width={250}
+                  onChange={handleChange}
+                  value={form.contact}
+                />
+              )}
+            </div>
+
+            {!isLogin && (
+              <div>
+                <label
+                  htmlFor={"role"}
+                  className={`block text-sm font-semibold`}
+                >
+                  Role
+                </label>
+                <select
+                  name="role"
+                  id=""
+                  value={form.role}
+                  onChange={handleChange}
+                  className="mt-2  h-[40px] dark:bg-darkElevation-300 dark:placeholder:text-gray-400 w-[510px] text-sm p-2 rounded-md outline-none"
+                >
+                  <option value="doctor">Doctor</option>
+                  <option value="patient">Patient</option>
+                </select>
+              </div>
+            )}
+
+
+            
+
+
+
+            <div className="flex space-x-3">
+              <InputField
+                label="Password"
+                type="password"
+                placeholder="Enter your Password"
+                name="password"
+                width={isLogin ? 370 : 250}
+                onChange={handleChange}
+                value={form.password}
+              />
+              {!isLogin && (
+                <InputField
+                  label="Confirm Password"
+                  type="password"
+                  placeholder="Re-Enter"
+                  name="confirmPassword"
+                  width={isLogin ? 370 : 250}
+                  onChange={handleChange}
+                  value={form.confirmPassword}
+                />
+              )}
+            </div>
+         
+
+            <div>
+              <div
+                onClick={isLogin?LoginSubmit:RegisterSubmit}
+                style={{ width : isLogin?'370px':'510px'}}
+                className="mt-7 bg-primary dark:bg-darkPrimary cursor-pointer text-white  h-[37px] hover:bg-purple-500 transition-all flex items-center justify-center rounded-md"
+              >
+              {loading?'Loading...':(
+                isLogin?'Login':'Sign Up'
+              )}
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 text-sm">
+            {isLogin?"Don't have an account ":"Already have an account? "}
+            <span className="text-primary dark:text-darkPrimary transition-all cursor-pointer font-semibold" onClick={()=>setIsLogin(!isLogin)}>{isLogin?'Sign Up':'Login'}</span>
+          </div>
+        </div>
+      </div>
+      <div></div>
+    </div>
+  );
+};
+
+export default Home;
